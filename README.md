@@ -29,3 +29,24 @@ Write different files for different entities in the system, i.e. the client and 
 
 - Interpolates using the answers from each server
 - (If cooperative) Interpolates using the encryption matrices and subtracts that from the results
+
+
+## Running the demo
+
+Start the server in a Docker instance
+
+```bash
+docker build -t sdmm-server
+docker run -p 5000:5000 sdmm-server
+```
+
+or standalone
+```bash
+python server/server.py
+```
+
+Run the demo with
+
+```bash
+python user.py
+```
