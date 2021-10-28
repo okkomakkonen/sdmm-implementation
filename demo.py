@@ -1,6 +1,6 @@
 import numpy as np
 
-from .sdmm import matdot
+from sdmm import matdot
 
 p = 2
 s = 10

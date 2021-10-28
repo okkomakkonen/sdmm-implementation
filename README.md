@@ -36,7 +36,7 @@ Write different files for different entities in the system, i.e. the client and 
 Start the server in a Docker instance
 
 ```bash
-docker build -t sdmm-server
+docker build -t sdmm-server server/
 docker run -p 5000:5000 sdmm-server
 ```
 
@@ -48,5 +48,5 @@ python server/server.py
 Run the demo with
 
 ```bash
-python user.py
+python demo.py
 ```
