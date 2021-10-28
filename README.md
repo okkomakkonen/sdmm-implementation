@@ -56,3 +56,6 @@ python demo.py
 - `get_urls` should return a list of URLs of servers that are available
   - currently returns just the local address
 - Deploy with kubernetes
+- Add cooperative MatDot code
+  - both encryption version and X-collusion based
+- Add MatDot over reals
