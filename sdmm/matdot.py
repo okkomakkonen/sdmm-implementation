@@ -152,15 +152,36 @@ async def matdot_finite_field(A, B, q, p, X, N):
 def matdot(
     A, B, *, p, q, X, N,
 ):
+    """Perform the MatDot algorithm with the given parameters
+    input
+    -----
+    A: np.ndarray of size t \times s
+    B: np.ndarray of size s \times r
+    p: 
 
+    """
     FF = GF(q)
 
     A = FF(A)
     B = FF(B)
 
+    t, sA = A.shape
+    sB, r = B.shape
+
+    if sA != sB:
+        raise ValueError("matrix dimensions don't match")
+    s = sA
+
+    # pad the common dimension to a multiple of p
+    pad = (-s) % p
+    A = np.pad(A, ((0, 0), (0, pad)), mode="constant")
+    B = np.pad(B, ((0, pad), (0, 0)), mode="constant")
+
     loop = asyncio.get_event_loop()
     C = loop.run_until_complete(matdot_finite_field(A, B, q, p, X, N))
-    C = np.array(C)
+
+    # remove the padding
+    C = np.array(C)[:t, :r]
     return C
 
 

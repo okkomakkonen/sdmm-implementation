@@ -3,9 +3,9 @@ import numpy as np
 from sdmm import matdot
 
 p = 2
-s = 10
+s = 1000
 M = 10
-q = 32749
+q = 2147483647
 
 A = np.random.randint(M, size=(s, s))
 B = np.random.randint(M, size=(s, s))

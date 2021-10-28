@@ -25,7 +25,7 @@ def multiply():
     """
 
     # read parameters and data
-    params = json.loads(request.form["json"])
+    params = json.loads(request.form.get("json", "{}"))
     data = request.files["file"]
 
     npz = np.load(data)

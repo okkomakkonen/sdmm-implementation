@@ -50,3 +50,8 @@ Run the demo with
 ```bash
 python demo.py
 ```
+
+## Things that need to be done
+
+- `get_urls` should return a list of URLs of servers that are available
+  - currently returns just the local address
