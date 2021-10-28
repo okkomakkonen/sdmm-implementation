@@ -4,10 +4,12 @@ from typing import Tuple, Optional
 
 from functools import reduce
 import os
+from math import sqrt
 
 import numpy as np
 
 from Crypto.Cipher import AES
+
 
 def partition_matrix(m, rp: int, cp: int):
     """Return a (multidimensional) list of submatrices of m"""
@@ -25,7 +27,9 @@ def partition_matrix(m, rp: int, cp: int):
     ]
 
 
-def random_matrix(FF, shape: Tuple[int, int], seed: Optional[bytes] = None) -> np.ndarray:
+def random_matrix(
+    FF, shape: Tuple[int, int], seed: Optional[bytes] = None
+) -> np.ndarray:
     """Return a random matrix from /dev/urandom (if seed is not defined) or from AES cipher
 
     seed: 40 bytes
@@ -45,3 +49,23 @@ def random_matrix(FF, shape: Tuple[int, int], seed: Optional[bytes] = None) -> n
         random_bytes = cipher.encrypt(z.data)
     Z = np.frombuffer(random_bytes, dtype=dtype).reshape(shape) % FF.order
     return FF(Z)
+
+
+def vandermonde_determinant(ev):
+
+    N = len(ev)
+
+    det = 1
+    for j in range(N):
+        for i in range(j):
+            det *= ev[j] - ev[i]
+
+    return det
+
+
+def complex_random_matrix(var, shape: Tuple[int, int]) -> np.ndarray:
+    """Return a complex normal random matrix with zero mean and variance var"""
+
+    return np.random.normal(0, sqrt(var / 2), size=shape) + 1j * np.random.normal(
+        0, sqrt(var / 2), size=shape
+    )

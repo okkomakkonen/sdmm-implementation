@@ -9,10 +9,12 @@ import numpy as np
 
 app = Flask(__name__)
 
+
 @app.route("/")
 def main():
     """Status indicator"""
     return "Hello, world!"
+
 
 @app.route("/multiply", methods=["POST"])
 def multiply():
@@ -43,6 +45,7 @@ def multiply():
     file.seek(0)
 
     return send_file(file, mimetype="application/octet-stream")
+
 
 if __name__ == "__main__":
 

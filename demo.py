@@ -12,9 +12,7 @@ B = np.random.randint(M, size=(s, s))
 
 C = matdot(A, B, p=p, q=q, X=2, N=10)
 
-if (C == A@B).all():
+if (C == A @ B).all():
     print("correct product")
 else:
     print("wrong product")
-
-

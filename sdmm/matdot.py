@@ -12,6 +12,7 @@ import asyncio
 
 from utils import random_matrix, partition_matrix, get_urls
 
+
 def encode_A(A, p, X, ev):
 
     FF = type(A)
@@ -31,6 +32,7 @@ def encode_A(A, p, X, ev):
 
     return AT
 
+
 def encode_B(B, p, X, ev) -> None:
 
     FF = type(B)
@@ -49,6 +51,7 @@ def encode_B(B, p, X, ev) -> None:
     )
 
     return BT
+
 
 async def multiply_at_server(session, base_url, A, B, q, sid):
 
@@ -74,11 +77,13 @@ async def multiply_at_server(session, base_url, A, B, q, sid):
 
     return (C, sid)
 
+
 def interpolation_matrix(FF, ev, p):
     """Return the interpolation matrix that is used to decode the result"""
 
     V = FF(np.array([[e ** i for i in range(len(ev))] for e in ev]))
     return np.linalg.inv(V)[p - 1, :]
+
 
 def interpolate(FF, ev, Z, p):
     """Return the product of A and B given the results from the servers"""
@@ -91,7 +96,7 @@ async def matdot_finite_field(A, B, q, p, X, N):
     # check that parameters are valid
     if q < N + 1:
         raise ValueError("field size too small")
-    
+
     _, sA = A.shape
     sB, _ = B.shape
 
@@ -102,7 +107,7 @@ async def matdot_finite_field(A, B, q, p, X, N):
     if s % p != 0:
         raise ValueError("matrix can't be evenly split")
 
-    Rc = 2*p + 2*X - 1
+    Rc = 2 * p + 2 * X - 1
     if N < Rc:
         raise ValueError("not enough servers")
 
@@ -123,7 +128,11 @@ async def matdot_finite_field(A, B, q, p, X, N):
         tasks = []
 
         for i, base_url, At, Bt in zip(range(N), get_urls(N), AT, BT):
-            tasks.append(asyncio.ensure_future(multiply_at_server(session, base_url, At, Bt, q, i)))
+            tasks.append(
+                asyncio.ensure_future(
+                    multiply_at_server(session, base_url, At, Bt, q, i)
+                )
+            )
 
         fastest_responses = []
 
@@ -139,18 +148,20 @@ async def matdot_finite_field(A, B, q, p, X, N):
 
     return C
 
-def matdot(A, B, *, p, q, X, N, ):
+
+def matdot(
+    A, B, *, p, q, X, N,
+):
 
     FF = GF(q)
 
     A = FF(A)
     B = FF(B)
-    
+
     loop = asyncio.get_event_loop()
     C = loop.run_until_complete(matdot_finite_field(A, B, q, p, X, N))
     C = np.array(C)
     return C
-
 
 
 # A simple test of the functionality
@@ -166,7 +177,7 @@ if __name__ == "__main__":
 
     C = matdot(A, B, p=p, q=q, X=2, N=10)
 
-    if (C == A@B).all():
+    if (C == A @ B).all():
         print("correct product")
     else:
         print("wrong product")
