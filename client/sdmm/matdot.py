@@ -13,9 +13,7 @@ import asyncio
 from utils import random_matrix, partition_matrix, get_urls
 
 
-def encode_A(A, p, X, ev):
-
-    FF = type(A)
+def encode_A(FF, A, p, X, ev):
 
     assert A.shape[1] % p == 0, "p doesn't divide second dimension of A"
 
@@ -33,9 +31,7 @@ def encode_A(A, p, X, ev):
     return AT
 
 
-def encode_B(B, p, X, ev) -> None:
-
-    FF = type(B)
+def encode_B(FF, B, p, X, ev) -> None:
 
     assert B.shape[0] % p == 0, "p doesn't divide first dimension of B"
 
@@ -120,8 +116,8 @@ async def matdot_finite_field(A, B, q, p, X, N):
     # choose evaluation points
     ev = FF(list(range(1, N + 1)))
 
-    AT = iter(encode_A(A, p, X, ev))
-    BT = iter(encode_B(B, p, X, ev))
+    AT = iter(encode_A(FF, A, p, X, ev))
+    BT = iter(encode_B(FF, B, p, X, ev))
 
     async with aiohttp.ClientSession() as session:
 

@@ -3,7 +3,7 @@ import numpy as np
 from sdmm import matdot
 
 p = 2
-s = 1000
+s = 100
 M = 10
 q = 2147483647
 

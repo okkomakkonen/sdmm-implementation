@@ -1,8 +1,9 @@
-"""Proveides the get_urls method that can (dynamically) give the URLS of the available servers"""
+"""Provides the get_urls method that can (dynamically) give the URLs of the available servers"""
 
 
 # TODO: make this be dynamic
-SERVER_URL = "http://127.0.0.1:5000"
+
+SERVER_URL = "http://sdmm.server"
 
 
 def get_urls(N, *, X=None):

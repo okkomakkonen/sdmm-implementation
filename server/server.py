@@ -2,6 +2,7 @@
 
 import tempfile
 import json
+import os
 
 from flask import Flask, request, send_file
 from galois import GF
@@ -14,6 +15,11 @@ app = Flask(__name__)
 def main():
     """Status indicator"""
     return "Hello, world!"
+
+@app.route("/ping")
+def ping():
+    """Return the current node name"""
+    return os.uname()[1]
 
 
 @app.route("/multiply", methods=["POST"])
