@@ -51,25 +51,35 @@ def encode_B(FF, B, p, X, ev) -> None:
 
 async def multiply_at_server(session, base_url, A, B, q, sid):
 
+    print(sid, "starting")
+
     url = base_url + "/multiply"
 
     FF = GF(q)
 
     data = aiohttp.FormData()
 
+    print("data size=",data)
+
     file = tempfile.TemporaryFile()
-    np.savez_compressed(file, A, B)
+    np.savez(file, A, B)
     file.seek(0)
     data.add_field("file", file)
 
     data.add_field("json", json.dumps({"field_size": q}))
 
     async with session.post(url, data=data) as res:
+        file.close()
+        print(sid, "status:", res.status)
+        if res.status != 200:
+            return None
         with tempfile.TemporaryFile() as file:
             file.write(await res.content.read())
             file.seek(0)
             C = np.load(file)["arr_0"]
             C = FF(C)
+
+    print(sid, "returning")
 
     return (C, sid)
 
@@ -87,7 +97,7 @@ def interpolate(FF, ev, Z, p):
     return sum((i * z for i, z in zip(inter, Z)), start=FF(0))
 
 
-async def matdot_finite_field(A, B, q, p, X, N):
+async def async_matdot_finite_field(A, B, q, p, X, N):
 
     # check that parameters are valid
     if q < N + 1:
@@ -133,9 +143,18 @@ async def matdot_finite_field(A, B, q, p, X, N):
         fastest_responses = []
 
         for res in asyncio.as_completed(tasks):
-            fastest_responses.append(await res)
+            result = await res
+            if result is None:
+                continue
+            fastest_responses.append(result)
             if len(fastest_responses) == Rc:
                 break
+
+        for task in tasks:
+            task.cancel()
+
+    if len(fastest_responses) < Rc:
+        raise Exception("didn't get enough responses")
 
     R, sids = zip(*fastest_responses)
     ev = ev[list(sids)]
@@ -145,7 +164,7 @@ async def matdot_finite_field(A, B, q, p, X, N):
     return C
 
 
-def matdot(
+def matdot_finite_field(
     A, B, *, p, q, X, N,
 ):
     """Perform the MatDot algorithm with the given parameters
@@ -174,7 +193,7 @@ def matdot(
     B = np.pad(B, ((0, pad), (0, 0)), mode="constant")
 
     loop = asyncio.get_event_loop()
-    C = loop.run_until_complete(matdot_finite_field(A, B, q, p, X, N))
+    C = loop.run_until_complete(async_matdot_finite_field(A, B, q, p, X, N))
 
     # remove the padding
     C = np.array(C)[:t, :r]

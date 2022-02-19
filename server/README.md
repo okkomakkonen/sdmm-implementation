@@ -46,5 +46,5 @@ sudo vim /etc/hosts
 To delete the minikube cluster, first stop the server and then delete the cluster
 ```bash
 minikube stop
-minikube start
+minikube delete
 ```
