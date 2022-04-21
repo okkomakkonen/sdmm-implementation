@@ -23,16 +23,16 @@ start = time()
 
 C = matdot(A, B)
 
-print(f"Took {time() - start:.3f}s")
+print(f"Took \033[1m{time() - start:.3f}s\033[m")
 
 print("Computing locally")
 start = time()
 
 AB = A @ B
 
-print(f"Took {time() - start:.3f}s")
+print(f"Took \033[1m{time() - start:.3f}s\033[m")
 
 if np.isclose(AB, C).all():
-    print("correct product")
+    print("\033[32;1mcorrect product\033[m")
 else:
-    print("wrong product")
+    print("\033[31;1mwrong product\033[m")
