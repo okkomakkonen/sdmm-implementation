@@ -90,6 +90,7 @@ def test_multiplication_at_servers_floating_point_complex():
         assert (C == A @ B).all()
 
 
+@pytest.mark.xfail
 def test_multiplication_at_servers_finite_field():
 
     F = galois.GF(19)

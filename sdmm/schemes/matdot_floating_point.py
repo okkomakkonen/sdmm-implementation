@@ -1,6 +1,6 @@
 """Provides an implementation of the secure MatDot code for floating point numbers."""
 from math import log, sqrt, pi
-from typing import List, Optional, Tuple
+from typing import Iterator, List, Optional, Tuple
 
 import numpy as np  # type: ignore
 
@@ -40,11 +40,15 @@ class MatDotFloatingPoint:
 
         self.urls = urls
 
-        if rel_leakage <= 0:
+        if rel_leakage is not None and rel_leakage <= 0:
             raise ValueError("Relative leakage has to be positive")
 
-        if std_a <= 0 or std_b <= 0:
+        if std_a is not None and std_a <= 0:
             raise ValueError("Standard deviations have to be positive")
+
+        if std_b is not None and std_b <= 0:
+            raise ValueError("Standard deviations have to be positive")
+
 
         self.rel_leakage = rel_leakage
         self.std_a = std_a
@@ -92,7 +96,7 @@ class MatDotFloatingPoint:
 
         return 0.0001
 
-    def encode_A(self, A: np.ndarray, std: float) -> List[np.ndarray]:
+    def encode_A(self, A: np.ndarray, std: float) -> Iterator[np.ndarray]:
         """Encode the matrix A"""
 
         AP = partition_matrix(A, horizontally=self.p)
@@ -102,7 +106,7 @@ class MatDotFloatingPoint:
         AT = iter(sum(a * x**i for i, a in enumerate(APR)) for x in self.alphas)
         return AT
 
-    def encode_B(self, B: np.ndarray, std: float) -> List[np.ndarray]:
+    def encode_B(self, B: np.ndarray, std: float) -> Iterator[np.ndarray]:
         """Encode the matrix B"""
 
         BP = partition_matrix(B, vertically=self.p)

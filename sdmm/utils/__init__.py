@@ -1,4 +1,4 @@
-from .utilities import (
+from .matrix_utilities import (
     safe_random_matrix,
     partition_matrix,
     complex_normal,

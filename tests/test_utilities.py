@@ -2,7 +2,7 @@ import pytest
 
 import numpy as np
 
-from sdmm.utils.utilities import (
+from sdmm.utils.matrix_utilities import (
     pad_matrix,
     check_conformable_and_compute_shapes,
     MatricesNotConformableException,

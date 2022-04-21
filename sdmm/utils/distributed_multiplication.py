@@ -1,9 +1,8 @@
 import json
 from multiprocessing import Pool
-from queue import Queue
-from typing import List, Optional
+from typing import Iterator, List, Optional
 
-import numpy as np
+import numpy as np # type: ignore
 import requests
 
 from sdmm.utils.serialization import serialize_np_array, deserialize_np_array
@@ -30,8 +29,8 @@ def multiply_at_server(
 
 
 def multiply_at_servers(
-    A_encoded: List[np.ndarray],
-    B_encoded: List[np.ndarray],
+    A_encoded: Iterator[np.ndarray],
+    B_encoded: Iterator[np.ndarray],
     urls: List[str],
     *,
     num_responses: Optional[int] = None,
