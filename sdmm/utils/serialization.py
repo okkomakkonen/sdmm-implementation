@@ -19,7 +19,7 @@ def serialize_np_array(A: np.ndarray) -> Dict[str, Any]:
     }
 
     if hasattr(type(A), "order"):
-        d["order"] = type(A).order
+        d["order"] = type(A).order  # type: ignore
 
     return d
 

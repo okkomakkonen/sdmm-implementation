@@ -1,6 +1,6 @@
 """Provides an implementation of the secure MatDot code for floating point numbers."""
 from math import log, sqrt, pi
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterator, List, Optional, Tuple, Union, Literal
 
 import numpy as np
 
