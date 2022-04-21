@@ -1,7 +1,7 @@
 """Provides an implementation of the secure MatDot code for finite fields."""
 from typing import List, Optional, Tuple
 
-import numpy as np  # type: ignore
+import numpy as np
 import galois  # type: ignore
 
 from sdmm.utils import (

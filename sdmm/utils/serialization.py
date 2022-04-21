@@ -1,7 +1,7 @@
 """Implements serialization for numpy arrays"""
 
 from typing import Any, Dict
-import numpy as np  # type: ignore
+import numpy as np
 import galois  # type: ignore
 import base64
 

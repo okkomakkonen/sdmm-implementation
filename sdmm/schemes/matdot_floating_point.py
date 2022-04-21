@@ -2,7 +2,7 @@
 from math import log, sqrt, pi
 from typing import Iterator, List, Optional, Tuple
 
-import numpy as np  # type: ignore
+import numpy as np
 
 from sdmm.utils import (
     complex_normal,

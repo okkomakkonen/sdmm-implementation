@@ -4,7 +4,7 @@ from typing import Tuple, Optional, overload, List
 from functools import reduce
 import os
 
-import numpy as np  # type: ignore
+import numpy as np
 from Crypto.Cipher import AES  # type: ignore
 
 
