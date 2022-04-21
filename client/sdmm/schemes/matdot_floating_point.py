@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np  # type: ignore
 
-from utils import (
+from sdmm.utils import (
     complex_normal,
     partition_matrix,
     multiply_at_servers,
@@ -123,7 +123,6 @@ class MatDotFloatingPoint:
         C = sum(Ct * g for g, Ct in zip(G, C_encoded))
 
         return C
-
 
     def __call__(
         self,

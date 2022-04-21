@@ -1,11 +1,12 @@
 import json
 from multiprocessing import Pool
+from queue import Queue
 from typing import List, Optional
 
 import numpy as np
 import requests
 
-from utils.serialization import serialize_np_array, deserialize_np_array
+from sdmm.utils.serialization import serialize_np_array, deserialize_np_array
 
 
 def multiply_at_server(
@@ -52,3 +53,5 @@ def multiply_at_servers(
         )
     )
     return res[:num_responses]
+
+

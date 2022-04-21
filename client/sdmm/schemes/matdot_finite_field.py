@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import numpy as np  # type: ignore
 import galois  # type: ignore
 
-from utils import (
+from sdmm.utils import (
     partition_matrix,
     multiply_at_servers,
     pad_matrix,

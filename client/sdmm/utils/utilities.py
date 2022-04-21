@@ -11,6 +11,9 @@ from Crypto.Cipher import AES  # type: ignore
 class MatricesNotConformableException(Exception):
     """Matrices are not conformable"""
 
+class MatrixDimensionNotDivisibleException(Exception):
+    """Matrix dimension is not evenly divisible"""
+
 
 @overload
 def partition_matrix(M: np.ndarray, horizontally: int) -> List[np.ndarray]:
@@ -30,33 +33,35 @@ def partition_matrix(
 
 
 def partition_matrix(M, *, horizontally=None, vertically=None):
+    """Return a list of partitions of the matrix"""
     n, m = M.shape
     if horizontally is not None and vertically is None:
         # split horizontally
         if m % horizontally != 0:
-            raise ValueError("can't be evenly split")
+            raise MatrixDimensionNotDivisibleException("Can not be evenly split")
         ms = m // horizontally
         return [M[:, i * ms : (i + 1) * ms] for i in range(horizontally)]
     if horizontally is None and vertically is not None:
         # split vertically
         if n % vertically != 0:
-            raise ValueError("can't be evenly split")
+            raise MatrixDimensionNotDivisibleException("Can not be evenly split")
         ns = n // vertically
         return [M[i * ns : (i + 1) * ns, :] for i in range(vertically)]
     if horizontally is not None and vertically is not None:
         # split both
         if n % vertically != 0 or m % horizontally != 0:
-            raise ValueError("can't be evenly split")
+            raise MatrixDimensionNotDivisibleException("Can not be evenly split")
         ms = m // horizontally
         ns = n // vertically
         return [
             [M[i * ns : (i + 1) * ns, j * ms : (j + 1) * ms] for j in range(vertically)]
             for i in range(vertically)
         ]
-    raise ValueError("matrix must be split either horizontally or vertically (or both)")
+    raise ValueError("Matrix must be split either horizontally or vertically (or both)")
 
 
 def pad_matrix(A, *, horizontally=None, vertically=None):
+    """Pad the matrix with zeros such that the specified axis is divisible by the specified value"""
 
     t, s = A.shape
 
@@ -76,7 +81,8 @@ def pad_matrix(A, *, horizontally=None, vertically=None):
     return A
 
 
-def check_conformable_and_compute_shapes(A, B):
+def check_conformable_and_compute_shapes(A: np.ndarray, B: np.ndarray) -> Tuple[int, int, int]:
+    """Check that the matrices are conformable and return the dimensions"""
 
     t, sA = A.shape
     sB, r = B.shape
@@ -120,15 +126,3 @@ def complex_normal(
     return np.random.normal(
         loc=loc.real, scale=scale / 2.0, size=size
     ) + 1j * np.random.normal(loc=loc.imag, scale=scale / 2.0, size=size)
-
-
-def vandermonde_determinant(ev):
-
-    N = len(ev)
-
-    det = 1
-    for j in range(N):
-        for i in range(j):
-            det *= ev[j] - ev[i]
-
-    return det

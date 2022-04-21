@@ -2,10 +2,11 @@ import pytest
 
 import numpy as np
 
-from utils.utilities import (
+from sdmm.utils.utilities import (
     pad_matrix,
     check_conformable_and_compute_shapes,
     MatricesNotConformableException,
+    MatrixDimensionNotDivisibleException,
     partition_matrix,
 )
 
@@ -22,6 +23,7 @@ def test_check_conformable_and_compute_shapes():
 
     assert check_conformable_and_compute_shapes(A, B) == (1, 2, 3)
 
+
 def test_parititioning():
 
     A = np.random.rand(10, 10)
@@ -34,19 +36,27 @@ def test_partitioning_horizontally():
 
     A = np.random.rand(10, 10)
 
+    with pytest.raises(MatrixDimensionNotDivisibleException):
+        partition_matrix(A, horizontally=3)
+
     part = partition_matrix(A, horizontally=5)
 
     assert isinstance(part, list) and len(part) == 5
     assert (np.block(part) == A).all()
 
+
 def test_partitioning_vertically():
 
     A = np.random.rand(10, 10)
+
+    with pytest.raises(MatrixDimensionNotDivisibleException):
+        partition_matrix(A, vertically=3)
 
     part = partition_matrix(A, vertically=5)
 
     assert isinstance(part, list) and len(part) == 5
     assert (np.block([[p] for p in part]) == A).all()
+
 
 def test_partitioning_horizontally_and_vertically():
 
@@ -71,6 +81,7 @@ def test_pad_matrix_horizontally():
     assert (AP[:, :10] == A).all()
     assert (AP[:, 10:] == 0 * AP[:, 10:]).all()
 
+
 def test_pad_matrix_vertically():
 
     A = np.random.rand(10, 10)
@@ -78,4 +89,4 @@ def test_pad_matrix_vertically():
     AP = pad_matrix(A, vertically=13)
     assert AP.shape == (13, 10)
     assert (AP[:10, :] == A).all()
-    assert (AP[10:, :] == 0 * AP[10:,:]).all()
+    assert (AP[10:, :] == 0 * AP[10:, :]).all()

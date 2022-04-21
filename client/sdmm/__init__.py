@@ -1,2 +1,2 @@
-from .matdot_finite_field import MatDotFiniteField
-from .matdot_floating_point import MatDotFloatingPoint
+from .schemes.matdot_finite_field import MatDotFiniteField
+from .schemes.matdot_floating_point import MatDotFloatingPoint

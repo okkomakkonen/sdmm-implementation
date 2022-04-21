@@ -5,7 +5,7 @@ import json
 import numpy as np
 import galois
 
-from utils.serialization import serialize_np_array, deserialize_np_array
+from sdmm.utils.serialization import serialize_np_array, deserialize_np_array
 
 
 def test_serialization_keys_floating_point_real():

@@ -4,10 +4,10 @@ This contains the python package that computes matrix products using Secure Dist
 
 ## Setup
 
-Install the required packages with
+Install the package with
 
 ```bash
-pip install -r requirements.txt
+pip install .
 ```
 
 ## Demo
@@ -15,7 +15,17 @@ pip install -r requirements.txt
 The demo can be run with
 
 ```bash
-python demo_floating_point.py
+python demos/demo_floating_point.py
 ```
 
-This requires that the server is running at `http://localhost:5000`
+This requires that the server is running at `http://localhost:5000`.
+
+## Testing
+
+Run the test packages using pytest (`pip install pytest`) by running
+
+```bash
+pytest .
+```
+
+This requires that the server is running at `http://localhost:5000`.

@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import galois
 
-from utils.distributed_multiplication import (
+from sdmm.utils.distributed_multiplication import (
     multiply_at_server,
     multiply_at_servers,
 )
