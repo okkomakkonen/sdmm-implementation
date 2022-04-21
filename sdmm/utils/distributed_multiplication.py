@@ -49,11 +49,12 @@ def multiply_at_servers(
     if num_servers <= 0 or num_responses <= 0:
         raise ValueError("Number of servers has to be positive")
 
-    p = Pool(num_servers)
-    res = list(
-        zip(
-            range(num_servers),
-            p.starmap(multiply_at_server, zip(A_encoded, B_encoded, urls)),
+    with Pool(num_servers) as p:
+        res = list(
+            zip(
+                range(num_servers),
+                p.starmap(multiply_at_server, zip(A_encoded, B_encoded, urls)),
+            )
         )
-    )
+
     return res[:num_responses]
