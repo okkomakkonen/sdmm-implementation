@@ -1,36 +1,16 @@
-import base64
-import tempfile
-import threading
 import json
-import base64
 from multiprocessing import Pool
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import numpy as np
 import requests
 
-
-def serialize_np_array(A: np.ndarray):
-
-    data = A.tobytes()
-    shape = A.shape
-    dtype = A.dtype.name
-
-    return {
-        "data": base64.b64encode(data).decode("utf-8"),
-        "shape": shape,
-        "dtype": dtype,
-    }
+from utils.serialization import serialize_np_array, deserialize_np_array
 
 
-def deserialize_np_array(d) -> np.ndarray:
-
-    dtype = np.dtype(d["dtype"])
-    data = base64.b64decode(d["data"])
-    return np.reshape(np.frombuffer(data, dtype=dtype), d["shape"])
-
-
-def multiply_at_server(A: np.ndarray, B: np.ndarray, url: str) -> np.ndarray:
+def multiply_at_server(
+    A: np.ndarray, B: np.ndarray, url: str, order: Optional[int] = None
+) -> np.ndarray:
 
     AE = serialize_np_array(A)
     BE = serialize_np_array(B)

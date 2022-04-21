@@ -1,6 +1,5 @@
 """Provides an implementation of the secure MatDot code for floating point numbers."""
 from math import log, sqrt, pi
-from multiprocessing.sharedctypes import Value
 from typing import List, Optional, Tuple
 
 import numpy as np  # type: ignore
@@ -20,14 +19,14 @@ class MatDotFloatingPoint:
         *,
         num_partitions: int,
         num_colluding: int,
-        num_servers: int,
         urls: List[str],
         std_a: Optional[float] = None,
         std_b: Optional[float] = None,
         rel_leakage: Optional[float] = None
     ) -> None:
 
-        # TODO: validate inputs
+        num_servers = len(urls)
+
         if num_partitions <= 0 or num_colluding <= 0 or num_servers <= 0:
             raise ValueError("Number of servers and partitions has to be positive")
 
@@ -113,6 +112,19 @@ class MatDotFloatingPoint:
         BT = iter(sum(b * x**i for i, b in enumerate(BPS)) for x in self.alphas)
         return BT
 
+    def _interpolate(self, responses: List[Tuple[int, np.ndarray]]) -> np.ndarray:
+        """Interpolates the product AB using the fastest responses"""
+
+        server_ids, C_encoded = zip(*responses)
+        alphas = self.alphas[list(server_ids)]
+
+        # interpolate using the results
+        G = np.linalg.inv(np.vander(alphas, increasing=True))[self.p - 1, :]
+        C = sum(Ct * g for g, Ct in zip(G, C_encoded))
+
+        return C
+
+
     def __call__(
         self,
         A: np.ndarray,
@@ -126,6 +138,7 @@ class MatDotFloatingPoint:
         # check that the matrices are the right sizes
         t, s, r = check_conformable_and_compute_shapes(A, B)
 
+        # validate input
         if std_a is None:
             std_a = self.std_a
 
@@ -163,12 +176,7 @@ class MatDotFloatingPoint:
             A_encoded, B_encoded, self.urls, num_responses=self.K
         )
 
-        # fastest responses and the associated alphas
-        server_ids, C_encoded = zip(*fastest_responses)
-        alphas = self.alphas[list(server_ids)]
-
-        # interpolate using the results
-        G = np.linalg.inv(np.vander(alphas, increasing=True))[self.p - 1, :]
-        C = sum(Ct * g for g, Ct in zip(G, C_encoded))
+        # interpolate using the fastest results
+        C = self._interpolate(fastest_responses)
 
         return C

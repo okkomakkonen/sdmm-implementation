@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 from sdmm import MatDotFloatingPoint
@@ -5,14 +7,61 @@ from sdmm import MatDotFloatingPoint
 BASE_URL = "http://localhost:5000"
 
 
+def test_input_validation():
+
+    with pytest.raises(ValueError):
+        MatDotFloatingPoint(
+            num_partitions=-1,
+            num_colluding=1,
+            urls=["http://localhost:5000/multiply"] * 20,
+            rel_leakage=0.01,
+        )
+
+    with pytest.raises(ValueError):
+        MatDotFloatingPoint(
+            num_partitions=1,
+            num_colluding=-1,
+            urls=["http://localhost:5000/multiply"] * 20,
+            rel_leakage=0.01,
+        )
+
+    with pytest.raises(ValueError):
+        MatDotFloatingPoint(
+            num_partitions=1, num_colluding=1, urls=[] * 20, rel_leakage=0.01
+        )
+
+    with pytest.raises(ValueError):
+        MatDotFloatingPoint(
+            num_partitions=1,
+            num_colluding=1,
+            urls=["http://localhost:5000/multiply"] * 20,
+            rel_leakage=-0.01,
+        )
+
+    with pytest.raises(ValueError):
+        MatDotFloatingPoint(
+            num_partitions=-1,
+            num_colluding=1,
+            urls=["http://localhost:5000/multiply"] * 20,
+            rel_leakage=0,
+        )
+
+    with pytest.raises(ValueError):
+        MatDotFloatingPoint(
+            num_partitions=5,
+            num_colluding=5,
+            urls=["http://localhost:5000/multiply"] * 10,
+            rel_leakage=0.01,
+        )
+
+
 def test_secure_matdot_floating_point_real():
 
-    urls = [BASE_URL + "/multiply"] * 20
+    urls = [BASE_URL + "/multiply"] * 22
 
     matdot = MatDotFloatingPoint(
         num_partitions=5,
         num_colluding=5,
-        num_servers=22,
         urls=urls,
         rel_leakage=1e-3,
         std_a=1.0,
@@ -29,12 +78,11 @@ def test_secure_matdot_floating_point_real():
 
 def test_secure_matdot_floating_point_complex():
 
-    urls = [BASE_URL + "/multiply"] * 20
+    urls = [BASE_URL + "/multiply"] * 22
 
     matdot = MatDotFloatingPoint(
         num_partitions=5,
         num_colluding=5,
-        num_servers=22,
         urls=urls,
         rel_leakage=1e-3,
         std_a=1.0,

@@ -8,3 +8,4 @@ from .utilities import (
 )
 
 from .distributed_multiplication import multiply_at_servers
+from .serialization import serialize_np_array, deserialize_np_array

@@ -16,8 +16,8 @@ matdot = MatDotFloatingPoint(
     std_b=1.0,
 )
 
-A = np.random.normal(loc=0.0, scale=1.0, size=(500, 500))
-B = np.random.normal(loc=0.0, scale=1.0, size=(500, 500))
+A = np.random.normal(loc=0.0, scale=1.0, size=(5000, 5000))
+B = np.random.normal(loc=0.0, scale=1.0, size=(5000, 5000))
 
 start = time()
 
@@ -25,7 +25,13 @@ C = matdot(A, B)
 
 print(f"Took {time() - start:.2f}s")
 
-if np.isclose(A @ B, C).all():
+start = time()
+
+AB = A @ B
+
+print(f"Took {time() - start:.2f}s")
+
+if np.isclose(AB, C).all():
     print("correct product")
 else:
     print("wrong product")

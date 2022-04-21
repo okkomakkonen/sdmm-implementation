@@ -4,8 +4,8 @@ from typing import Tuple, Optional, overload, List
 from functools import reduce
 import os
 
-import numpy as np
-from Crypto.Cipher import AES
+import numpy as np  # type: ignore
+from Crypto.Cipher import AES  # type: ignore
 
 
 class MatricesNotConformableException(Exception):
