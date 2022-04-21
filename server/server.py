@@ -7,8 +7,8 @@ import base64
 import argparse
 
 from flask import Flask, request
-import galois # type: ignore
-import numpy as np # type: ignore
+import galois  # type: ignore
+import numpy as np  # type: ignore
 
 app = Flask(__name__)
 
@@ -44,6 +44,7 @@ def deserialize_np_array(d: Dict[str, Any]) -> np.ndarray:
         A = F(A)
 
     return A
+
 
 @app.route("/")
 def main():

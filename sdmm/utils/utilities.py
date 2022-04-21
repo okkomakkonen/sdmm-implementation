@@ -11,6 +11,7 @@ from Crypto.Cipher import AES  # type: ignore
 class MatricesNotConformableException(Exception):
     """Matrices are not conformable"""
 
+
 class MatrixDimensionNotDivisibleException(Exception):
     """Matrix dimension is not evenly divisible"""
 
@@ -81,7 +82,9 @@ def pad_matrix(A, *, horizontally=None, vertically=None):
     return A
 
 
-def check_conformable_and_compute_shapes(A: np.ndarray, B: np.ndarray) -> Tuple[int, int, int]:
+def check_conformable_and_compute_shapes(
+    A: np.ndarray, B: np.ndarray
+) -> Tuple[int, int, int]:
     """Check that the matrices are conformable and return the dimensions"""
 
     t, sA = A.shape

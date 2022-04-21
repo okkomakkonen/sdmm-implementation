@@ -53,5 +53,3 @@ def multiply_at_servers(
         )
     )
     return res[:num_responses]
-
-
