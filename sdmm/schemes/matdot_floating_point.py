@@ -49,7 +49,6 @@ class MatDotFloatingPoint:
         if std_b is not None and std_b <= 0:
             raise ValueError("Standard deviations have to be positive")
 
-
         self.rel_leakage = rel_leakage
         self.std_a = std_a
         self.std_b = std_b
