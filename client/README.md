@@ -5,5 +5,5 @@ This contains the python package that computes matrix products using Secure Dist
 The demo can be run with
 
 ```bash
-python demo.py
+python demo_floating_point.py
 ```

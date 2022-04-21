@@ -23,7 +23,7 @@ def encode_A(FF, A, p, X, ev):
     R = [random_matrix(FF, A_enc_shape) for _ in range(X)]
 
     AT = (
-        sum((AP[i] * e ** i for i in range(p)), start=FF(0))
+        sum((AP[i] * e**i for i in range(p)), start=FF(0))
         + sum((R[i] * e ** (i + p) for i in range(X)), start=FF(0))
         for e in ev
     )
@@ -59,7 +59,7 @@ async def multiply_at_server(session, base_url, A, B, q, sid):
 
     data = aiohttp.FormData()
 
-    print("data size=",data)
+    print("data size=", data)
 
     file = tempfile.TemporaryFile()
     np.savez(file, A, B)
@@ -87,7 +87,7 @@ async def multiply_at_server(session, base_url, A, B, q, sid):
 def interpolation_matrix(FF, ev, p):
     """Return the interpolation matrix that is used to decode the result"""
 
-    V = FF(np.array([[e ** i for i in range(len(ev))] for e in ev]))
+    V = FF(np.array([[e**i for i in range(len(ev))] for e in ev]))
     return np.linalg.inv(V)[p - 1, :]
 
 
@@ -165,14 +165,20 @@ async def async_matdot_finite_field(A, B, q, p, X, N):
 
 
 def matdot_finite_field(
-    A, B, *, p, q, X, N,
+    A,
+    B,
+    *,
+    p,
+    q,
+    X,
+    N,
 ):
     """Perform the MatDot algorithm with the given parameters
     input
     -----
     A: np.ndarray of size t \times s
     B: np.ndarray of size s \times r
-    p: 
+    p:
 
     """
     FF = GF(q)

@@ -2,7 +2,7 @@ import numpy as np
 import time
 from galois import GF
 
-from sdmm import matdot
+from sdmm import matdot_finite_field as matdot
 
 start = time.time()
 

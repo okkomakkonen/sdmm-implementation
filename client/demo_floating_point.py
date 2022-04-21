@@ -2,27 +2,30 @@ from time import time
 
 import numpy as np
 
-from sdmm import matdot_floating_point
+from sdmm import MatDotFloatingPoint
 
-p = 2
-s = 5000
+urls = ["http://localhost:5000/multiply"] * 20
 
-A = np.random.normal(loc=0.0, scale=1.0, size=(s, s))
-B = np.random.normal(loc=0.0, scale=1.0, size=(s, s))
+matdot = MatDotFloatingPoint(
+    num_partitions=5,
+    num_colluding=5,
+    num_servers=22,
+    urls=urls,
+    rel_leakage=1e-3,
+    std_a=1.0,
+    std_b=1.0,
+)
+
+A = np.random.normal(loc=0.0, scale=1.0, size=(500, 500))
+B = np.random.normal(loc=0.0, scale=1.0, size=(500, 500))
 
 start = time()
 
-C = matdot_floating_point(A, B, p=p, X=2, N=10, sigmaa=1.0, sigmab=1.0, delta=0.01)
+C = matdot(A, B)
 
-print(f"Took {time() - start} seconds")
+print(f"Took {time() - start:.2f}s")
 
-start = time()
-
-AB = A @ B
-
-print(f"Took {time() - start} seconds")
-
-if np.isclose(AB, C).all():
+if np.isclose(A @ B, C).all():
     print("correct product")
 else:
     print("wrong product")

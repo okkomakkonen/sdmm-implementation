@@ -1,33 +1,94 @@
 """Provides some utility functions"""
 
-from typing import Tuple, Optional
-
+from typing import Tuple, Optional, overload, List
 from functools import reduce
 import os
-from math import sqrt
 
 import numpy as np
-
 from Crypto.Cipher import AES
 
 
-def partition_matrix(m, rp: int, cp: int):
-    """Return a (multidimensional) list of submatrices of m"""
-    r, c = m.shape
-    assert r % rp == 0 and c % cp == 0, "matrix isn't evenly partitioned"
-    R, C = r // rp, c // cp
-
-    if rp == 1:
-        return [m[:, C * j : C * (j + 1)] for j in range(cp)]
-    if cp == 1:
-        return [m[R * i : R * (i + 1), :] for i in range(rp)]
-    return [
-        [m[R * i : R * (i + 1), C * j : C * (j + 1)] for j in range(cp)]
-        for i in range(rp)
-    ]
+class MatricesNotConformableException(Exception):
+    """Matrices are not conformable"""
 
 
-def random_matrix(
+@overload
+def partition_matrix(M: np.ndarray, horizontally: int) -> List[np.ndarray]:
+    pass
+
+
+@overload
+def partition_matrix(M: np.ndarray, vertically: int) -> List[np.ndarray]:
+    pass
+
+
+@overload
+def partition_matrix(
+    M: np.ndarray, *, horizontally: int, vertically: int
+) -> List[List[np.ndarray]]:
+    pass
+
+
+def partition_matrix(M, *, horizontally=None, vertically=None):
+    n, m = M.shape
+    if horizontally is not None and vertically is None:
+        # split horizontally
+        if m % horizontally != 0:
+            raise ValueError("can't be evenly split")
+        ms = m // horizontally
+        return [M[:, i * ms : (i + 1) * ms] for i in range(horizontally)]
+    if horizontally is None and vertically is not None:
+        # split vertically
+        if n % vertically != 0:
+            raise ValueError("can't be evenly split")
+        ns = n // vertically
+        return [M[i * ns : (i + 1) * ns, :] for i in range(vertically)]
+    if horizontally is not None and vertically is not None:
+        # split both
+        if n % vertically != 0 or m % horizontally != 0:
+            raise ValueError("can't be evenly split")
+        ms = m // horizontally
+        ns = n // vertically
+        return [
+            [M[i * ns : (i + 1) * ns, j * ms : (j + 1) * ms] for j in range(vertically)]
+            for i in range(vertically)
+        ]
+    raise ValueError("matrix must be split either horizontally or vertically (or both)")
+
+
+def pad_matrix(A, *, horizontally=None, vertically=None):
+
+    t, s = A.shape
+
+    if horizontally is not None and vertically is None:
+        pad = (-s) % horizontally
+        return np.pad(A, ((0, 0), (0, pad)), mode="constant")
+
+    if horizontally is None and vertically is not None:
+        pad = (-t) % vertically
+        return np.pad(A, ((0, pad), (0, 0)), mode="constant")
+
+    if horizontally is not None and vertically is not None:
+        pad1 = (-t) % horizontally
+        pad2 = (-s) % vertically
+        return np.pad(A, ((0, pad1), (0, pad2)), mode="constant")
+
+    return A
+
+
+def check_conformable_and_compute_shapes(A, B):
+
+    t, sA = A.shape
+    sB, r = B.shape
+
+    if sA != sB:
+        raise MatricesNotConformableException("Matrix dimensions do not match")
+    s = sA
+
+    return t, s, r
+
+
+def safe_random_matrix(
     FF, shape: Tuple[int, int], seed: Optional[bytes] = None
 ) -> np.ndarray:
     """Return a random matrix from /dev/urandom (if seed is not defined) or from AES cipher
@@ -51,6 +112,16 @@ def random_matrix(
     return FF(Z)
 
 
+def complex_normal(
+    loc: Optional[float] = 0.0,
+    scale: Optional[float] = 1.0,
+    size: Optional[Tuple[int, ...]] = None,
+) -> np.ndarray:
+    return np.random.normal(
+        loc=loc.real, scale=scale / 2.0, size=size
+    ) + 1j * np.random.normal(loc=loc.imag, scale=scale / 2.0, size=size)
+
+
 def vandermonde_determinant(ev):
 
     N = len(ev)
@@ -61,11 +132,3 @@ def vandermonde_determinant(ev):
             det *= ev[j] - ev[i]
 
     return det
-
-
-def complex_random_matrix(var, shape: Tuple[int, int]) -> np.ndarray:
-    """Return a complex normal random matrix with zero mean and variance var"""
-
-    return np.random.normal(0, sqrt(var / 2), size=shape) + 1j * np.random.normal(
-        0, sqrt(var / 2), size=shape
-    )

@@ -1,254 +1,174 @@
-"""Provides an implementation of the secure MatDot code"""
-from typing import Tuple, Optional, overload, List
-
-import tempfile
-import json
+"""Provides an implementation of the secure MatDot code for floating point numbers."""
 from math import log, sqrt, pi
+from multiprocessing.sharedctypes import Value
+from typing import List, Optional, Tuple
 
-import numpy as np
+import numpy as np  # type: ignore
 
-import aiohttp
-import asyncio
-import requests
-
-from utils import get_urls
-
-def complex_normal(loc: Optional[float]=0.0, scale: Optional[float]=1.0, size: Optional[Tuple[int, ...]]=None) -> np.ndarray:
-    return np.random.normal(loc=loc.real, scale=scale/2.0, size=size) + 1j*np.random.normal(loc=loc.imag, scale=scale/2.0, size=size)
-
-def vandermonde_matrix(x: np.ndarray, m: Optional[int]=None) -> np.ndarray:
-    n = len(x)
-    if m is None:
-        m = n
-    return np.array([[x[i]**j for j in range(m)] for i in range(n)])
-
-@overload
-def partition_matrix(M: np.ndarray, *, horizontally: int) -> List[np.ndarray]:
-    pass
+from utils import (
+    complex_normal,
+    partition_matrix,
+    multiply_at_servers,
+    pad_matrix,
+    check_conformable_and_compute_shapes,
+)
 
 
-@overload
-def partition_matrix(M: np.ndarray, *, vertically: int) -> List[np.ndarray]:
-    pass
+class MatDotFloatingPoint:
+    def __init__(
+        self,
+        *,
+        num_partitions: int,
+        num_colluding: int,
+        num_servers: int,
+        urls: List[str],
+        std_a: Optional[float] = None,
+        std_b: Optional[float] = None,
+        rel_leakage: Optional[float] = None
+    ) -> None:
 
+        # TODO: validate inputs
+        if num_partitions <= 0 or num_colluding <= 0 or num_servers <= 0:
+            raise ValueError("Number of servers and partitions has to be positive")
 
-@overload
-def partition_matrix(
-    M: np.ndarray, *, horizontally: int, vertically: int
-) -> List[List[np.ndarray]]:
-    pass
+        self.p = num_partitions
+        self.X = num_colluding
+        self.N = num_servers
+        self.K = 2 * self.p + 2 * self.X - 1
 
+        if self.N < self.K:
+            raise ValueError("Too few servers for SDMM")
 
-def partition_matrix(M, *, horizontally=None, vertically=None):
-    n, m = M.shape
-    if horizontally is not None and vertically is None:
-        # split horizontally
-        if m % horizontally != 0:
-            raise ValueError("can't be evenly split")
-        ms = m // horizontally
-        return [M[:, i * ms : (i + 1) * ms] for i in range(horizontally)]
-    if horizontally is None and vertically is not None:
-        # split vertically
-        if n % vertically != 0:
-            raise ValueError("can't be evenly split")
-        ns = n // vertically
-        return [M[i * ns : (i + 1) * ns, :] for i in range(vertically)]
-    if horizontally is not None and vertically is not None:
-        # split both
-        if n % vertically != 0 or m % horizontally != 0:
-            raise ValueError("can't be evenly split")
-        ms = m // horizontally
-        ns = n // vertically
-        return [
-            [M[i * ns : (i + 1) * ns, j * ms : (j + 1) * ms] for j in range(vertically)]
-            for i in range(vertically)
-        ]
-    raise ValueError("matrix must be split either horizontally or vertically (or both)")
+        self.urls = urls
 
+        if rel_leakage <= 0:
+            raise ValueError("Relative leakage has to be positive")
 
-async def multiply_at_server(session, base_url, A, B, sid):
+        if std_a <= 0 or std_b <= 0:
+            raise ValueError("Standard deviations have to be positive")
 
-    print(sid, "starting")
+        self.rel_leakage = rel_leakage
+        self.std_a = std_a
+        self.std_b = std_b
 
-    url = base_url + "/multiply"
+        # precompute the evaluation points that we will use
+        self.alphas = np.exp([2j * pi * n / self.N for n in range(self.N)])
 
-    data = aiohttp.FormData()
+        self.trr: Optional[float] = None
+        self.trs: Optional[float] = None
 
-    file = tempfile.SpooledTemporaryFile()
-    np.savez(file, A, B)
-    file.seek(0)
-    data.add_field("file", file)
+    def _compute_required_std(
+        self,
+        shape: Tuple[int, int, int],
+        std_a: Optional[float],
+        std_b: Optional[float],
+        rel_leakage: Optional[float],
+    ) -> float:
+        """Compute the standard deviation to achieve rel_leakage of information leakage"""
 
-    data.add_field("json", json.dumps({}))
+        if rel_leakage is None:
+            rel_leakage = self.rel_leakage
 
-    print(sid, "sending")
+        if rel_leakage is None:
+            raise RuntimeError("rel_leakage has to be specified")
 
-    async with session.post(url, data=data) as res:
-        file.close()
-        print(sid, "status:", res.status)
-        if res.status != 200:
-            return None
-        with tempfile.TemporaryFile() as file:
-            file.write(await res.content.read())
-            file.seek(0)
-            C = np.load(file)["arr_0"]
+        t, s, r = shape
 
-    print(sid, "returning")
-
-    return (C, sid)
-
-async def multiply_at_server_requests(base_url, A, B, sid):
-
-    print(sid, "starting")
-
-    url = base_url + "/multiply"
-
-    file = tempfile.TemporaryFile()
-    np.savez(file, A, B)
-    file.seek(0)
-    files = {"file": ("file", file, "application/octet-stream")}
-    data = {}
-
-    res = requests.post(url, data=data, files=files)
-    file.close()
-    print(sid, "status:", res.status_code)
-    if res.status_code != 200:
-        return None
-    with tempfile.TemporaryFile() as file:
-        file.write(res.content)
-        file.seek(0)
-        C = np.load(file)["arr_0"]
-
-    print(sid, "returning")
-
-    return (C, sid)
-
-
-async def async_matdot_floating_point(A, B, p, X, N, sigmaa, sigmab, delta):
-
-    vara = sigmaa**2
-    varb = sigmab**2
-
-    t, s = A.shape
-    s, r = B.shape
-
-    # compute recovery threshold
-    Rc = 2 * p + 2 * X - 1
-
-    # choose evaluation points
-    x = np.exp([2j*pi*n / N for n in range(N)])
-
-    # compute required standard deviation for random parts
-    V = vandermonde_matrix(x[:X], p)
-    U = np.diag(x[:X]**p) @ vandermonde_matrix(x[:X], X)
-    M = np.linalg.inv(U) @ V
-    M = M.conjugate().transpose() @ M
-    varr = vara*M.trace().real / (p*delta)
-    sigmar = sqrt(varr)
-
-    V = vandermonde_matrix(x[:X], p)
-    U = np.diag(x[:X]**p) @ vandermonde_matrix(x[:X], X)
-    M = np.linalg.inv(U) @ V
-    M = M.conjugate().transpose() @ M
-    vars = varb*M.trace().real / (p*delta)
-    sigmas = sqrt(vars)
-
-    # encode A
-    AP = partition_matrix(A, horizontally=p)
-    R = [complex_normal(scale=sigmar, size=(t, s // p)) for _ in range(X)]
-    APR = AP + R
-    AT = iter(sum(a*x[n]**i for i, a in enumerate(APR)) for n in range(N))
-
-    # encode B
-    BP = partition_matrix(B, vertically=p)
-    S = [complex_normal(scale=sigmas, size=(s // p, r)) for _ in range(X)]
-    BPS = list(reversed(BP)) + S
-    BT = iter(sum(b*x[n]**i for i, b in enumerate(BPS)) for n in range(N))
-
-    # multiply at servers
-    async with aiohttp.ClientSession() as session:
-
-        tasks = []
-
-        for i, base_url, At, Bt in zip(range(N), get_urls(N), AT, BT):
-            tasks.append(
-                asyncio.ensure_future(
-                    multiply_at_server(session, base_url, At, Bt, i)
-                )
+        if self.trr is None or self.trs is None:
+            V = np.vander(self.alphas[: self.X], self.p, increasing=True)
+            U = np.diag(self.alphas[: self.X] ** self.p) @ np.vander(
+                self.alphas[: self.X], self.X, increasing=True
             )
+            M = np.linalg.inv(U) @ V
+            M = M.conjugate().transpose() @ M
+            self.trr = M.trace().real
 
-        fastest_responses = []
+            V = np.vander(self.alphas[: self.X], self.p, increasing=False)
+            U = np.diag(self.alphas[: self.X] ** self.p) @ np.vander(
+                self.alphas[: self.X], self.X, increasing=True
+            )
+            M = np.linalg.inv(U) @ V
+            M = M.conjugate().transpose() @ M
+            self.trs = M.trace().real
 
-        for res in asyncio.as_completed(tasks):
-            result = await res
-            if result is None:
-                continue
-            fastest_responses.append(result)
-            if len(fastest_responses) == Rc:
-                break
+        return 0.0001
 
-        for task in tasks:
-            task.cancel()
+    def encode_A(self, A: np.ndarray, std: float) -> List[np.ndarray]:
+        """Encode the matrix A"""
 
-    if len(fastest_responses) < Rc:
-        raise Exception("didn't get enough responses")
+        AP = partition_matrix(A, horizontally=self.p)
+        size = AP[0].shape
+        R = [complex_normal(scale=std, size=size) for _ in range(self.X)]
+        APR = AP + R
+        AT = iter(sum(a * x**i for i, a in enumerate(APR)) for x in self.alphas)
+        return AT
 
-    # fastest responses
-    CT, sids = zip(*fastest_responses)
-    x = x[list(sids)]
+    def encode_B(self, B: np.ndarray, std: float) -> List[np.ndarray]:
+        """Encode the matrix B"""
 
-    # interpolate using the results
-    G = np.linalg.inv(vandermonde_matrix(x))[p-1, :]
-    C = sum(Ct*g for g, Ct in zip(G, CT))
+        BP = partition_matrix(B, vertically=self.p)
+        size = BP[0].shape
+        S = [complex_normal(scale=std, size=size) for _ in range(self.X)]
+        BPS = list(reversed(BP)) + S
+        BT = iter(sum(b * x**i for i, b in enumerate(BPS)) for x in self.alphas)
+        return BT
 
-    return C
+    def __call__(
+        self,
+        A: np.ndarray,
+        B: np.ndarray,
+        std_a: Optional[float] = None,
+        std_b: Optional[float] = None,
+        rel_leakage: Optional[float] = None,
+    ) -> np.ndarray:
+        """Compute the matrix product of A and B using secure MatDot for floating point numbers"""
 
+        # check that the matrices are the right sizes
+        t, s, r = check_conformable_and_compute_shapes(A, B)
 
-def matdot_floating_point(
-    A, B, *, p, X, N, sigmaa, sigmab, delta
-):
-    """Perform the MatDot algorithm with the given parameters
-    input
-    -----
-    A: np.ndarray of size t \times s
-    B: np.ndarray of size s \times r
-    p: 
+        if std_a is None:
+            std_a = self.std_a
 
-    """
+        if std_b is None:
+            std_b = self.std_b
 
-    t, sA = A.shape
-    sB, r = B.shape
+        if std_a is None or std_b is None:
+            raise ValueError("std_a and std_b have to be set")
 
-    if sA != sB:
-        raise ValueError("matrix dimensions don't match")
-    s = sA
+        # pad the matrices
+        A = pad_matrix(A, horizontally=self.p)
+        B = pad_matrix(B, vertically=self.p)
 
-    # pad the common dimension to a multiple of p
-    pad = (-s) % p
-    A = np.pad(A, ((0, 0), (0, pad)), mode="constant")
-    B = np.pad(B, ((0, pad), (0, 0)), mode="constant")
+        # compute the required standard deviation for the random matrices
+        std = self._compute_required_std((t, s, r), std_a, std_b, rel_leakage)
 
-    loop = asyncio.get_event_loop()
-    C = loop.run_until_complete(async_matdot_floating_point(A, B, p, X, N, sigmaa, sigmab, delta))
+        # execute the algorithm
+        C = self._secure_matdot(A, B, std=std)
 
-    # remove the padding
-    C = np.array(C)[:t, :r]
-    return C
+        # remove the padding
+        C = np.array(C)[:t, :r]
+        return C
 
+    def _secure_matdot(self, A: np.ndarray, B: np.ndarray, *, std: float) -> np.ndarray:
+        """Perform the secure MatDot algorithm for matrices with floating point entries"""
 
-# A simple test of the functionality
-if __name__ == "__main__":
+        # encode A
+        A_encoded = self.encode_A(A, std)
 
-    p = 2
-    s = 10
-    M = 10
+        # encode B
+        B_encoded = self.encode_B(B, std)
 
-    A = np.random.normal(loc=0.0, scale=1.0, size=(s, s))
-    B = np.random.normal(loc=0.0, scale=1.0, size=(s, s))
+        # multiply at servers
+        fastest_responses = multiply_at_servers(
+            A_encoded, B_encoded, self.urls, num_responses=self.K
+        )
 
-    C = matdot_floating_point(A, B, p=p, X=2, N=10, sigmaa=1.0, sigmab=1.0, delta=0.1)
+        # fastest responses and the associated alphas
+        server_ids, C_encoded = zip(*fastest_responses)
+        alphas = self.alphas[list(server_ids)]
 
-    if (C == A @ B).all():
-        print("correct product")
-    else:
-        print("wrong product")
+        # interpolate using the results
+        G = np.linalg.inv(np.vander(alphas, increasing=True))[self.p - 1, :]
+        C = sum(Ct * g for g, Ct in zip(G, C_encoded))
+
+        return C
