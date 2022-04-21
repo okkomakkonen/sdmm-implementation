@@ -5,6 +5,7 @@ Implementations of SDMM protocols. The `sdmm` directory contains the necessary c
 ## TODO
 
 - Secure MatDot over finite fields does not work at the moment
+- Only wait for the fastest responses instead of waiting for the slowest one to respond
 
 ## Setup
 
