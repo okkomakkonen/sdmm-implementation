@@ -14,6 +14,8 @@ from sdmm.utils import (
 
 
 class MatDotFloatingPoint:
+    """Implements the secure MatDot scheme for real numbers"""
+
     def __init__(
         self,
         *,
@@ -54,10 +56,17 @@ class MatDotFloatingPoint:
         self.std_b = std_b
 
         # precompute the evaluation points that we will use
+        # TODO: do this in a numerically stable way
         self.alphas = np.exp([2j * pi * n / self.N for n in range(self.N)])
 
         self.trr: Optional[float] = None
         self.trs: Optional[float] = None
+
+    def __repr__(self) -> str:
+        return f"MatDotFloatingPoint(num_partitions={self.p}, num_colluding={self.X}, num_servers={self.N})"
+
+    def __str__(self) -> str:
+        return f"Secure MatDot code over floating point numbers with p = {self.p}, X = {self.X}, N = {self.N}"
 
     def _compute_required_std(
         self,
@@ -93,6 +102,7 @@ class MatDotFloatingPoint:
             M = M.conjugate().transpose() @ M
             self.trs = M.trace().real
 
+        # TODO: finish this method
         return 0.0001
 
     def encode_A(self, A: np.ndarray, std: float) -> Iterator[np.ndarray]:
