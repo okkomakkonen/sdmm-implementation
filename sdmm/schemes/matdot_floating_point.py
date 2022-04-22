@@ -1,6 +1,6 @@
 """Provides an implementation of the secure MatDot code for floating point numbers."""
 from math import log, sqrt, pi
-from typing import Iterator, List, Optional, Tuple, Union, Literal
+from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 
@@ -24,7 +24,7 @@ class MatDotFloatingPoint:
         urls: List[str],
         std_a: Optional[float] = None,
         std_b: Optional[float] = None,
-        rel_leakage: Optional[float] = None
+        rel_leakage: Optional[float] = None,
     ) -> None:
 
         num_servers = len(urls)

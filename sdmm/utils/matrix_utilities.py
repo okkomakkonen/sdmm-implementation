@@ -129,3 +129,10 @@ def complex_normal(
     return np.random.normal(
         loc=loc.real, scale=scale / 2.0, size=size
     ) + 1j * np.random.normal(loc=loc.imag, scale=scale / 2.0, size=size)
+
+def fake_multiply(A: np.ndarray, B: np.ndarray) -> np.ndarray:
+
+    t, _ = A.shape
+    _, r = B.shape
+
+    return np.zeros((t, r), dtype=A.dtype)
