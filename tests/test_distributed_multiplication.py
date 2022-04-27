@@ -21,7 +21,8 @@ def test_multiplication_at_server_floating_point_real():
     C = multiply_at_server(A, B, url)
 
     assert C.shape == (A @ B).shape
-    assert (C == A @ B).all()
+    # assert (C == A @ B).all()
+    assert np.isclose(C, A @ B).all()
 
 
 def test_multiplication_at_server_floating_point_complex():
@@ -34,7 +35,8 @@ def test_multiplication_at_server_floating_point_complex():
     C = multiply_at_server(A, B, url)
 
     assert C.shape == (A @ B).shape
-    assert (C == A @ B).all()
+    # assert (C == A @ B).all()
+    assert np.isclose(C, A @ B).all()
 
 
 def test_multiplication_at_server_finite_field():
@@ -66,7 +68,8 @@ def test_multiplication_at_servers_floating_point_real():
     for i, C in C_encoded:
         A = A_encoded[i]
         B = B_encoded[i]
-        assert (C == A @ B).all()
+        # assert (C == A @ B).all()
+        assert np.isclose(C, A @ B).all()
 
 
 def test_multiplication_at_servers_floating_point_complex():
@@ -87,7 +90,8 @@ def test_multiplication_at_servers_floating_point_complex():
     for i, C in C_encoded:
         A = A_encoded[i]
         B = B_encoded[i]
-        assert (C == A @ B).all()
+        # assert (C == A @ B).all()
+        assert np.isclose(C, A @ B).all()
 
 
 @pytest.mark.xfail
@@ -107,4 +111,5 @@ def test_multiplication_at_servers_finite_field():
     for i, C in C_encoded:
         A = A_encoded[i]
         B = B_encoded[i]
-        assert (C == A @ B).all()
+        # assert (C == A @ B).all()
+        assert np.isclose(C, A @ B).all()

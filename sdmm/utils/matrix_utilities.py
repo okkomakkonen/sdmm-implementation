@@ -126,13 +126,47 @@ def complex_normal(
     scale: float = 1.0,
     size: Optional[Tuple[int, ...]] = None,
 ) -> np.ndarray:
+
     return np.random.normal(
         loc=loc.real, scale=scale / 2.0, size=size
     ) + 1j * np.random.normal(loc=loc.imag, scale=scale / 2.0, size=size)
 
+
 def fake_multiply(A: np.ndarray, B: np.ndarray) -> np.ndarray:
+    """Return a zero matrix that matches the size of A*B"""
 
     t, _ = A.shape
     _, r = B.shape
 
     return np.zeros((t, r), dtype=A.dtype)
+
+def fast_multiply(A: np.ndarray, B: np.ndarray) -> np.ndarray:
+
+    return A @ B
+
+
+def slow_multiply(A: np.ndarray, B: np.ndarray) -> np.ndarray:
+    """Compute the product A*B using the definition of matrix product
+
+    Warning: this is slow!
+    """
+
+    t, s = A.shape
+    s, r = B.shape
+
+    # Support finite fields as well
+    if hasattr(type(A), "order"):
+        zero = type(A)(0)
+        return np.array(
+            [
+                [
+                    sum((A[i, j] * B[j, k] for j in range(s)), start=zero)
+                    for k in range(r)
+                ]
+                for i in range(t)
+            ]
+        )
+
+    return np.array(
+        [[sum(A[i, j] * B[j, k] for j in range(s)) for k in range(r)] for i in range(t)]
+    )

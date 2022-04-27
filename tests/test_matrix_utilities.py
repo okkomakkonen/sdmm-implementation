@@ -1,6 +1,7 @@
 import pytest
 
 import numpy as np
+import galois
 
 from sdmm.utils.matrix_utilities import (
     pad_matrix,
@@ -8,6 +9,7 @@ from sdmm.utils.matrix_utilities import (
     MatricesNotConformableException,
     MatrixDimensionNotDivisibleException,
     partition_matrix,
+    slow_multiply,
 )
 
 
@@ -90,3 +92,29 @@ def test_pad_matrix_vertically():
     assert AP.shape == (13, 10)
     assert (AP[:10, :] == A).all()
     assert (AP[10:, :] == 0 * AP[10:, :]).all()
+
+
+def test_slow_multiply_reals():
+
+    A = np.random.rand(100, 100)
+    B = np.random.rand(100, 100)
+
+    assert np.isclose(slow_multiply(A, B), A @ B).all()
+
+
+def test_slow_multiply_complex():
+
+    A = np.random.rand(100, 100) + 1j * np.random.rand(100, 100)
+    B = np.random.rand(100, 100) + 1j * np.random.rand(100, 100)
+
+    assert np.isclose(slow_multiply(A, B), A @ B).all()
+
+
+def test_slow_multiply_finite_field():
+
+    F = galois.GF(19)
+
+    A = F.Random((20, 20))
+    B = F.Random((20, 20))
+
+    assert (slow_multiply(A, B) == A @ B).all()

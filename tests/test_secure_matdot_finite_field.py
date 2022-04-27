@@ -10,7 +10,7 @@ BASE_URL = "http://localhost:5000"
 @pytest.mark.xfail
 def test_secure_matdot_finite_field():
 
-    urls = [BASE_URL + "/multiply"] * 20
+    urls = [BASE_URL] * 20
 
     matdot = MatDotFiniteField(
         num_partitions=5, num_colluding=5, num_servers=22, urls=urls, field_size=23

@@ -1,5 +1,6 @@
 """Provides an implementation of the secure MatDot code for floating point numbers."""
 from math import log, sqrt, pi
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -8,9 +9,11 @@ from sdmm.utils import (
     complex_normal,
     partition_matrix,
     multiply_at_servers,
+    multiply_at_server,
     pad_matrix,
     check_conformable_and_compute_shapes,
 )
+from sdmm.utils.matrix_utilities import fake_multiply
 
 
 class MatDotFloatingPoint:
@@ -25,6 +28,8 @@ class MatDotFloatingPoint:
         std_a: Optional[float] = None,
         std_b: Optional[float] = None,
         rel_leakage: Optional[float] = None,
+        threaded: bool = False,
+        slow_multiplication: bool = False
     ) -> None:
 
         num_servers = len(urls)
@@ -40,7 +45,8 @@ class MatDotFloatingPoint:
         if self.N < self.K:
             raise ValueError("Too few servers for SDMM")
 
-        self.urls = urls
+        self.urls = [url + ("/slow_multiply" if slow_multiplication else "/multiply") for url in urls]
+        self.threaded = threaded
 
         if rel_leakage is not None and rel_leakage <= 0:
             raise ValueError("Relative leakage has to be positive")
@@ -105,24 +111,58 @@ class MatDotFloatingPoint:
         # TODO: finish this method
         return 0.0001
 
-    def encode_A(self, A: np.ndarray, std: float) -> Iterator[np.ndarray]:
+    def _partition_A(self, A: np.ndarray) -> List[np.ndarray]:
+        """Partition the matrix A to p pieces horizontally"""
+
+        return partition_matrix(A, horizontally=self.p)
+
+    def _partition_B(self, B: np.ndarray) -> List[np.ndarray]:
+        """Partition the matrix B to p pieces vertically"""
+
+        return partition_matrix(B, vertically=self.p)
+
+    def _draw_random_for_A(self, A: np.ndarray, std: float) -> List[np.ndarray]:
+        """Draw the random matrices of given standard deviation associated to the matrix A"""
+
+        t, s = A.shape
+        size = (t, s // self.p)
+        return [complex_normal(scale=std, size=size) for _ in range(self.X)]
+
+    def _draw_random_for_B(self, B: np.ndarray, std: float) -> List[np.ndarray]:
+        """Draw the random matrices of given standard deviation associated to the matrix B"""
+
+        s, r = B.shape
+        size = (s // self.p, r)
+        return [complex_normal(scale=std, size=size) for _ in range(self.X)]
+
+    def _encode_A_at(
+        self, alpha: complex, AP: List[np.ndarray], R: List[np.ndarray]
+    ) -> np.ndarray:
+        """Compute the polynomial f(x) at alpha"""
+
+        APR = AP + R
+        return sum(a * alpha**i for i, a in enumerate(APR))
+
+    def _encode_B_at(self, alpha: complex, BP: np.ndarray, S: np.ndarray) -> np.ndarray:
+        """Compute the polynomial g(x) at alpha"""
+
+        BPS = list(reversed(BP)) + S
+        return sum(b * alpha**i for i, b in enumerate(BPS))
+
+    def _encode_A(self, A: np.ndarray, std: float) -> Iterator[np.ndarray]:
         """Encode the matrix A"""
 
-        AP = partition_matrix(A, horizontally=self.p)
-        size = AP[0].shape
-        R = [complex_normal(scale=std, size=size) for _ in range(self.X)]
-        APR = AP + R
-        AT = iter(sum(a * x**i for i, a in enumerate(APR)) for x in self.alphas)
+        AP = self._partition_A(A)
+        R = self._draw_random_for_A(A, std)
+        AT = [self._encode_A_at(alpha, AP, R) for alpha in self.alphas]
         return AT
 
-    def encode_B(self, B: np.ndarray, std: float) -> Iterator[np.ndarray]:
+    def _encode_B(self, B: np.ndarray, std: float) -> Iterator[np.ndarray]:
         """Encode the matrix B"""
 
-        BP = partition_matrix(B, vertically=self.p)
-        size = BP[0].shape
-        S = [complex_normal(scale=std, size=size) for _ in range(self.X)]
-        BPS = list(reversed(BP)) + S
-        BT = iter(sum(b * x**i for i, b in enumerate(BPS)) for x in self.alphas)
+        BP = self._partition_B(B)
+        S = self._draw_random_for_B(B, std)
+        BT = [self._encode_B_at(alpha, BP, S) for alpha in self.alphas]
         return BT
 
     def _interpolate(self, responses: List[Tuple[int, np.ndarray]]) -> np.ndarray:
@@ -167,8 +207,11 @@ class MatDotFloatingPoint:
         # compute the required standard deviation for the random matrices
         std = self._compute_required_std((t, s, r), std_a, std_b, rel_leakage)
 
-        # execute the algorithm
-        C = self._secure_matdot(A, B, std=std)
+        # execute the algorithm either multithreaded or not
+        if self.threaded:
+            C = self._secure_matdot_threaded(A, B, std=std)
+        else:
+            C = self._secure_matdot(A, B, std=std)
 
         # remove the padding
         C = np.array(C)[:t, :r]
@@ -178,10 +221,10 @@ class MatDotFloatingPoint:
         """Perform the secure MatDot algorithm for matrices with floating point entries"""
 
         # encode A
-        A_encoded = self.encode_A(A, std)
+        A_encoded = self._encode_A(A, std)
 
         # encode B
-        B_encoded = self.encode_B(B, std)
+        B_encoded = self._encode_B(B, std)
 
         # multiply at servers
         fastest_responses = multiply_at_servers(
@@ -189,6 +232,61 @@ class MatDotFloatingPoint:
         )
 
         # interpolate using the fastest results
+        C = self._interpolate(fastest_responses)
+
+        return C
+
+    def _encode_and_multiply(self, AP, BP, R, S, alpha, url):
+
+        At = self._encode_A_at(alpha, AP, R)
+        Bt = self._encode_B_at(alpha, BP, S)
+
+        return multiply_at_server(At, Bt, url)
+
+    def _secure_matdot_threaded(
+        self, A: np.ndarray, B: np.ndarray, *, std: float
+    ) -> np.ndarray:
+        """Perform the secure MatDot algorithm for matrices with floating point entries"""
+
+        # partition the matrices
+        AP = self._partition_A(A)
+        BP = self._partition_B(B)
+
+        # draw random matrices
+        R = self._draw_random_for_A(A, std)
+        S = self._draw_random_for_B(B, std)
+
+        with ThreadPoolExecutor(max_workers=self.N) as executor:
+
+            futures = dict()
+
+            for url, alpha in zip(self.urls, self.alphas):
+
+                future = executor.submit(
+                    self._encode_and_multiply, AP, BP, R, S, alpha, url
+                )
+                futures[future] = alpha
+
+            fastest_responses = []
+
+            for future in as_completed(futures):
+                alpha = futures[future]
+                i = list(self.alphas).index(alpha)
+                try:
+                    res = future.result()
+                    fastest_responses.append((i, res))
+                except Exception:
+                    pass
+
+                if len(fastest_responses) == self.K:
+                    break
+
+            for future in futures:
+                future.cancel()
+
+        if len(fastest_responses) < self.K:
+            raise RuntimeError("Did not receive enough responses")
+
         C = self._interpolate(fastest_responses)
 
         return C
