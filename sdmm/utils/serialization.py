@@ -13,7 +13,7 @@ def serialize_np_array(A: np.ndarray) -> Dict[str, Any]:
     dtype = A.dtype.name
 
     d = {
-        "data": base64.b64encode(data).decode("utf-8"),
+        "data": base64.b85encode(data).decode("utf-8"),
         "shape": shape,
         "dtype": dtype,
     }
@@ -27,7 +27,7 @@ def serialize_np_array(A: np.ndarray) -> Dict[str, Any]:
 def deserialize_np_array(d: Dict[str, Any]) -> np.ndarray:
 
     dtype = np.dtype(d["dtype"])
-    data = base64.b64decode(d["data"])
+    data = base64.b85decode(d["data"])
     shape = d["shape"]
 
     A = np.reshape(np.frombuffer(data, dtype=dtype), newshape=shape)

@@ -1,6 +1,7 @@
 import pytest
 
 import json
+from math import log2
 
 import numpy as np
 import galois
@@ -38,6 +39,14 @@ def test_serialization_keys_finite_field():
     assert "shape" in d
     assert "dtype" in d
     assert "order" in d
+
+def test_serialization_size():
+
+    A = np.random.rand(100, 100)
+
+    ser = json.dumps(serialize_np_array(A))
+
+    assert len(ser) <= 100 * 100 * 8 * 8 / log2(85) + 200
 
 
 def test_serialization_floating_point_real():
