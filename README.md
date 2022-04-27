@@ -35,6 +35,14 @@ This requires that the server is running at `http://localhost:5000`.
 The demo is running the matrix multiplication using the `slow_multiply` method, which is O(n^3) instead of a more optimized version.
 Using the more optimized methods is possible, but it is difficult to compete against it :(.
 
+## Profiling
+
+You can profile the demo by running
+
+```bash
+python -m cProfile -s tottime demos/demo_floating_point.py | head -n 30
+```
+
 ## Testing
 
 Run the test packages using `pytest` by running
