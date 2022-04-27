@@ -1,5 +1,5 @@
 import json
-from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -54,18 +54,31 @@ def multiply_at_servers(
     if num_servers <= 0 or num_responses <= 0:
         raise ValueError("Number of servers has to be positive")
 
-    if all(url == "fake-no-threading" for url in urls):
-        res = []
-        for i, (A, B) in enumerate(zip(A_encoded, B_encoded)):
-            res.append((i, fake_multiply(A, B)))
+    with ThreadPoolExecutor(max_workers=num_servers) as executor:
 
-        return res
+        futures = dict()
 
-    with Pool(num_servers) as p:
-        res = list(
-            enumerate(
-                p.starmap(multiply_at_server, zip(A_encoded, B_encoded, urls)),
+        for i, (url, AP, BP) in enumerate(zip(urls, A_encoded, B_encoded)):
+
+            future = executor.submit(
+                multiply_at_server, AP, BP, url
             )
-        )
+            futures[future] = i
 
-    return res[:num_responses]
+        fastest_responses = []
+
+        for future in as_completed(futures):
+            i = futures[future]
+            try:
+                res = future.result()
+                fastest_responses.append((i, res))
+            except Exception:
+                pass
+
+            if len(fastest_responses) == num_responses:
+                break
+
+        for future in futures:
+            future.cancel()
+
+    return fastest_responses
