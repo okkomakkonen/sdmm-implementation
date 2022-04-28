@@ -1,12 +1,11 @@
-import pytest
-
 import json
 from math import log2
 
-import numpy as np
 import galois
+import numpy as np
+import pytest
 
-from sdmm.utils.serialization import serialize_np_array, deserialize_np_array
+from sdmm.utils.serialization import deserialize_np_array, serialize_np_array
 
 
 def test_serialization_keys_floating_point_real():
@@ -40,13 +39,15 @@ def test_serialization_keys_finite_field():
     assert "dtype" in d
     assert "order" in d
 
+
 def test_serialization_size():
 
     A = np.random.rand(100, 100)
 
     ser = json.dumps(serialize_np_array(A))
 
-    assert len(ser) <= 100 * 100 * 8 * 8 / log2(85) + 200
+    # num_elements_in_matrix * num_bytes_per_element * num_bits_in_byte / num_bits_used_in_byte + overhead
+    assert len(ser) <= 100 * 100 * 8 * 8 / log2(64) + 200
 
 
 def test_serialization_floating_point_real():

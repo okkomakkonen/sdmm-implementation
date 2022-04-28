@@ -1,16 +1,12 @@
 """Provides an implementation of the secure MatDot code for finite fields."""
 from typing import List, Optional, Tuple
 
-import numpy as np
 import galois  # type: ignore
+import numpy as np
 
-from sdmm.utils import (
-    partition_matrix,
-    multiply_at_servers,
-    pad_matrix,
-    check_conformable_and_compute_shapes,
-    safe_random_matrix,
-)
+from sdmm.utils import (check_conformable_and_compute_shapes,
+                        multiply_at_servers, pad_matrix, partition_matrix,
+                        safe_random_matrix)
 
 
 class MatDotFiniteField:

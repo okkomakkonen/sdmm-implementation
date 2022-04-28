@@ -1,6 +1,5 @@
-import pytest
-
 import galois
+import pytest
 
 from sdmm import MatDotFiniteField
 

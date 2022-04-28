@@ -1,8 +1,8 @@
 """Provides some utility functions"""
 
-from typing import Tuple, Optional, overload, List
-from functools import reduce
 import os
+from functools import reduce
+from typing import List, Optional, Tuple, overload
 
 import numpy as np
 from Crypto.Cipher import AES  # type: ignore
@@ -139,6 +139,7 @@ def fake_multiply(A: np.ndarray, B: np.ndarray) -> np.ndarray:
     _, r = B.shape
 
     return np.zeros((t, r), dtype=A.dtype)
+
 
 def fast_multiply(A: np.ndarray, B: np.ndarray) -> np.ndarray:
 

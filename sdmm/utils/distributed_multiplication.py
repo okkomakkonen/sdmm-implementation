@@ -1,22 +1,25 @@
+import gc
 import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
+                                as_completed)
 from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 import requests
 
-from sdmm.utils.matrix_utilities import fake_multiply
-from sdmm.utils.serialization import serialize_np_array, deserialize_np_array
+from sdmm.utils.matrix_utilities import fake_multiply, fast_multiply
+from sdmm.utils.serialization import deserialize_np_array, serialize_np_array
 
 
-def multiply_at_server(
-    A: np.ndarray, B: np.ndarray, url: str, order: Optional[int] = None
-) -> np.ndarray:
+def multiply_at_server(A: np.ndarray, B: np.ndarray, url: str) -> np.ndarray:
     """Compute the product of A and B using a helper server"""
 
     # shortcircuits the computation if we want to compute locally
     if url == "fake":
         return fake_multiply(A, B)
+
+    if url == "local":
+        return fast_multiply(A, B)
 
     AE = serialize_np_array(A)
     BE = serialize_np_array(B)
@@ -26,7 +29,7 @@ def multiply_at_server(
     res = requests.post(url, json=data)
 
     if res.status_code != 200:
-        raise RuntimeError(f"Server returned with code {res.status_code}")
+        raise RuntimeError(f"Server returned with status code {res.status_code}")
 
     CE = json.loads(res.text)
     C = deserialize_np_array(CE)
@@ -54,15 +57,13 @@ def multiply_at_servers(
     if num_servers <= 0 or num_responses <= 0:
         raise ValueError("Number of servers has to be positive")
 
-    with ThreadPoolExecutor(max_workers=num_servers) as executor:
+    with ProcessPoolExecutor(max_workers=num_servers) as executor:
 
         futures = dict()
 
         for i, (url, AP, BP) in enumerate(zip(urls, A_encoded, B_encoded)):
 
-            future = executor.submit(
-                multiply_at_server, AP, BP, url
-            )
+            future = executor.submit(multiply_at_server, AP, BP, url)
             futures[future] = i
 
         fastest_responses = []

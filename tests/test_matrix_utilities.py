@@ -1,16 +1,12 @@
+import galois
+import numpy as np
 import pytest
 
-import numpy as np
-import galois
-
-from sdmm.utils.matrix_utilities import (
-    pad_matrix,
-    check_conformable_and_compute_shapes,
-    MatricesNotConformableException,
-    MatrixDimensionNotDivisibleException,
-    partition_matrix,
-    slow_multiply,
-)
+from sdmm.utils.matrix_utilities import (MatricesNotConformableException,
+                                         MatrixDimensionNotDivisibleException,
+                                         check_conformable_and_compute_shapes,
+                                         pad_matrix, partition_matrix,
+                                         slow_multiply)
 
 
 def test_check_conformable_and_compute_shapes():

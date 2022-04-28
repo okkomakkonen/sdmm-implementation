@@ -3,10 +3,9 @@ from time import time
 import numpy as np
 
 from sdmm import MatDotFloatingPoint
-from sdmm.utils import slow_multiply
+from sdmm.utils import fake_multiply, fast_multiply, slow_multiply
 
-# urls = [f"http://localhost:{5000 + num}" for num in range(25)]
-urls = ["http://localhost:5000"]*25
+urls = ["http://localhost:5000"] * 25
 
 matdot = MatDotFloatingPoint(
     num_partitions=10,
@@ -16,14 +15,15 @@ matdot = MatDotFloatingPoint(
     std_a=1.0,
     std_b=1.0,
     threaded=True,
-    slow_multiplication=True
+    slow_multiplication=False,
 )
 
-(t, s, r) = (500, 500, 500)
+(t, s, r) = (2000, 2000, 2000)
 
 A = np.random.normal(loc=0.0, scale=1.0, size=(t, s))
 B = np.random.normal(loc=0.0, scale=1.0, size=(s, r))
 
+print(f"Multiplying {t} x {s} and {s} x {r} matrices")
 print("Computing using secure MatDot over floating point")
 start = time()
 
@@ -34,7 +34,7 @@ print(f"Took \033[1m{time() - start:.3f}s\033[m")
 print("Computing locally")
 start = time()
 
-AB = slow_multiply(A, B)
+AB = fast_multiply(A, B)
 
 print(f"Took \033[1m{time() - start:.3f}s\033[m")
 

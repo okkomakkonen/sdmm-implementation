@@ -1,9 +1,7 @@
 """Simple Flask server for SDMM computations"""
 
-from typing import Dict, Any
-
-import json
 import argparse
+import json
 
 from flask import Flask, request
 
@@ -39,6 +37,7 @@ def multiply():
 
     return json.dumps(CE)
 
+
 @app.route("/slow_multiply", methods=["POST"])
 def slow_multiply():
     """Multiply the matrices and return the product
@@ -60,6 +59,7 @@ def slow_multiply():
 
     return json.dumps(CE)
 
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Serve SDMM multiplication server")
@@ -67,4 +67,10 @@ if __name__ == "__main__":
     parser.add_argument("--processes", default=1, help="Number of processes to use")
     args = parser.parse_args()
 
-    app.run(host="0.0.0.0", port=args.port, debug=False, processes=int(args.processes), threaded=False)
+    app.run(
+        host="0.0.0.0",
+        port=args.port,
+        debug=False,
+        processes=int(args.processes),
+        threaded=False,
+    )

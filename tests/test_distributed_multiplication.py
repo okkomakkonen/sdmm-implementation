@@ -1,12 +1,9 @@
+import galois
+import numpy as np
 import pytest
 
-import numpy as np
-import galois
-
-from sdmm.utils.distributed_multiplication import (
-    multiply_at_server,
-    multiply_at_servers,
-)
+from sdmm.utils.distributed_multiplication import (multiply_at_server,
+                                                   multiply_at_servers)
 
 BASE_URL = "http://localhost:5000"
 
@@ -21,8 +18,7 @@ def test_multiplication_at_server_floating_point_real():
     C = multiply_at_server(A, B, url)
 
     assert C.shape == (A @ B).shape
-    # assert (C == A @ B).all()
-    assert np.isclose(C, A @ B).all()
+    assert (C == A @ B).all()
 
 
 def test_multiplication_at_server_floating_point_complex():
@@ -35,8 +31,7 @@ def test_multiplication_at_server_floating_point_complex():
     C = multiply_at_server(A, B, url)
 
     assert C.shape == (A @ B).shape
-    # assert (C == A @ B).all()
-    assert np.isclose(C, A @ B).all()
+    assert (C == A @ B).all()
 
 
 def test_multiplication_at_server_finite_field():
@@ -68,8 +63,7 @@ def test_multiplication_at_servers_floating_point_real():
     for i, C in C_encoded:
         A = A_encoded[i]
         B = B_encoded[i]
-        # assert (C == A @ B).all()
-        assert np.isclose(C, A @ B).all()
+        assert (C == A @ B).all()
 
 
 def test_multiplication_at_servers_floating_point_complex():
@@ -90,11 +84,10 @@ def test_multiplication_at_servers_floating_point_complex():
     for i, C in C_encoded:
         A = A_encoded[i]
         B = B_encoded[i]
-        # assert (C == A @ B).all()
-        assert np.isclose(C, A @ B).all()
-
+        assert (C == A @ B).all()
 
 @pytest.mark.xfail
+# TODO: fails for some reason when using ProcessPoolExecutor instead of ThreadPoolExecutor in multiply_at_servers
 def test_multiplication_at_servers_finite_field():
 
     F = galois.GF(19)
@@ -111,5 +104,4 @@ def test_multiplication_at_servers_finite_field():
     for i, C in C_encoded:
         A = A_encoded[i]
         B = B_encoded[i]
-        # assert (C == A @ B).all()
-        assert np.isclose(C, A @ B).all()
+        assert (C == A @ B).all()

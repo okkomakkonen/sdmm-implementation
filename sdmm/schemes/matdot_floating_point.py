@@ -1,19 +1,13 @@
 """Provides an implementation of the secure MatDot code for floating point numbers."""
-from math import log, sqrt, pi
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from math import pi
 from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from sdmm.utils import (
-    complex_normal,
-    partition_matrix,
-    multiply_at_servers,
-    multiply_at_server,
-    pad_matrix,
-    check_conformable_and_compute_shapes,
-)
-from sdmm.utils.matrix_utilities import fake_multiply
+from sdmm.utils import (check_conformable_and_compute_shapes, complex_normal,
+                        multiply_at_server, multiply_at_servers, pad_matrix,
+                        partition_matrix)
 
 
 class MatDotFloatingPoint:
@@ -29,7 +23,7 @@ class MatDotFloatingPoint:
         std_b: Optional[float] = None,
         rel_leakage: Optional[float] = None,
         threaded: bool = False,
-        slow_multiplication: bool = False
+        slow_multiplication: bool = False,
     ) -> None:
 
         num_servers = len(urls)
@@ -45,7 +39,11 @@ class MatDotFloatingPoint:
         if self.N < self.K:
             raise ValueError("Too few servers for SDMM")
 
-        self.urls = [url + ("/slow_multiply" if slow_multiplication else "/multiply") for url in urls]
+        self.urls = [
+            url + ("/slow_multiply" if slow_multiplication else "/multiply")
+            for url in urls
+        ]
+
         self.threaded = threaded
 
         if rel_leakage is not None and rel_leakage <= 0:
@@ -119,7 +117,10 @@ class MatDotFloatingPoint:
     def _partition_B(self, B: np.ndarray) -> List[np.ndarray]:
         """Partition the matrix B to p pieces vertically"""
 
-        return partition_matrix(B, vertically=self.p)
+        BP = partition_matrix(B, vertically=self.p)
+        BP.reverse()
+
+        return BP
 
     def _draw_random_for_A(self, A: np.ndarray, std: float) -> List[np.ndarray]:
         """Draw the random matrices of given standard deviation associated to the matrix A"""
@@ -143,10 +144,12 @@ class MatDotFloatingPoint:
         APR = AP + R
         return sum(a * alpha**i for i, a in enumerate(APR))
 
-    def _encode_B_at(self, alpha: complex, BP: np.ndarray, S: np.ndarray) -> np.ndarray:
+    def _encode_B_at(
+        self, alpha: complex, BPR: List[np.ndarray], S: List[np.ndarray]
+    ) -> np.ndarray:
         """Compute the polynomial g(x) at alpha"""
 
-        BPS = list(reversed(BP)) + S
+        BPS = BPR + S
         return sum(b * alpha**i for i, b in enumerate(BPS))
 
     def _encode_A(self, A: np.ndarray, std: float) -> Iterator[np.ndarray]:
@@ -239,7 +242,9 @@ class MatDotFloatingPoint:
     def _encode_and_multiply(self, AP, BP, R, S, alpha, url):
 
         At = self._encode_A_at(alpha, AP, R)
+        del AP, R
         Bt = self._encode_B_at(alpha, BP, S)
+        del BP, S
 
         return multiply_at_server(At, Bt, url)
 

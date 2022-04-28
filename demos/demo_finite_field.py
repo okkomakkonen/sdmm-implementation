@@ -1,5 +1,6 @@
-import numpy as np
 import time
+
+import numpy as np
 from galois import GF
 
 from sdmm import matdot_finite_field as matdot

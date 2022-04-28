@@ -1,6 +1,5 @@
-import pytest
-
 import numpy as np
+import pytest
 
 from sdmm import MatDotFloatingPoint
 
@@ -100,6 +99,7 @@ def test_secure_matdot_floating_point_complex():
 
     assert np.isclose(A @ B, C).all()
 
+
 def test_secure_matdot_floating_point_threaded():
 
     urls = [BASE_URL] * 22
@@ -111,7 +111,7 @@ def test_secure_matdot_floating_point_threaded():
         rel_leakage=1e-3,
         std_a=1.0,
         std_b=1.0,
-        threaded=True
+        threaded=True,
     )
 
     A = np.random.normal(loc=0.0, scale=1.0, size=(50, 50))
@@ -120,6 +120,7 @@ def test_secure_matdot_floating_point_threaded():
     C = matdot(A, B)
 
     assert np.isclose(A @ B, C).all()
+
 
 def test_secure_matdot_floating_point_slow():
 
@@ -132,7 +133,7 @@ def test_secure_matdot_floating_point_slow():
         rel_leakage=1e-3,
         std_a=1.0,
         std_b=1.0,
-        slow_multiplication=True
+        slow_multiplication=True,
     )
 
     A = np.random.normal(loc=0.0, scale=1.0, size=(50, 50))
